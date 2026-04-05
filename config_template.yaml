@@ -1,0 +1,90 @@
+﻿data:
+  root: H:/sound_classification_2/sound_classification_2/datasets/ESC-50/audio
+  folds_dir: H:/sound_classification_2/sound_classification_2/datasets/ESC-50/meta/esc50_folds_official_clean
+  num_classes: 50
+
+  # Paper-aligned input setup
+  sample_rate: 44100
+  clip_seconds: 5
+  num_workers: 0
+  time_frames: 431
+
+  # Paper uses Mixup as augmentation
+  waveform_augment: false
+  specaugment: false
+  paper_augment: false
+
+model:
+  # Fixed lightweight CNN backbone (paper-style)
+  backbone: lightweight_cnn
+  input_representation: mel
+  freeze_backbone: false
+
+  # Paper log-mel shape target: (431, 40, 1)
+  n_mels: 40
+  n_fft: 1024
+  hop_length: 256   # 논문 설정
+  win_length: 1024
+
+  # Head
+  head_hidden: 128
+  dropout: 0.5
+
+  # Pooling (overridden by run_protocol variants)
+  pooling: gap
+  ssrp_w: 4
+  ssrp_k: 12
+  ssrp_b_k: 12
+  asp_attention_hidden: 128
+  adaptive_ks: [2, 4, 6]               # k > window 개수 바꾸기!
+  adaptive_gate_hidden: 128
+  adaptive_gate_input: meanstd
+  adaptive_gate_norm: true
+  adaptive_gate_dropout: 0.0
+  adaptive_temperature: 1.5
+  adaptive_learnable_temperature: false
+  adaptive_alpha_floor: 0.0
+  adaptive_use_branch_calibration: false
+  adaptive_return_mode: details
+
+train:
+  # Pure 5-fold CV: 4-fold train + 1-fold eval
+  cv_protocol: with_val
+  seed: 42
+
+  # Paper-aligned optimizer/hparams
+  optimizer: sgd
+  lr: 0.05
+  momentum: 0.9
+  nesterov: false
+  weight_decay: 0.0
+  batch_size: 64
+  epochs: 700
+
+  # Mixup(alpha=0.2)
+  mixup_alpha: 0.2
+  adaptive_entropy_lambda: 0.001
+
+  # Selection metric + LR scheduler (no early stopping)
+  label_smoothing: 0.0
+  best_metric: val_accuracy
+  scheduler: reduce_on_plateau
+  scheduler_monitor: val_accuracy
+  scheduler_factor: 0.5
+  scheduler_patience: 20
+  scheduler_threshold: 0.0001
+  scheduler_cooldown: 5
+  scheduler_min_lr: 0.0001
+  checkpoint_timestamp: true
+  artifact_timestamp: true
+  save_params_timestamp: true
+
+  # Logs
+  log_alpha_stats: true
+  use_tqdm: true
+  epoch_log: true
+  latency_warmup: 10
+  latency_runs: 50
+
+output:
+  out_dir: H:/sound_classification_2/sound_classification_2/outputs/esc50_pooling_tradeoff
